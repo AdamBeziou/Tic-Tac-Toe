@@ -93,8 +93,38 @@ int CheckWin(vector< vector<int> > gameBoard) { // Checks for win conditions
 }
 
 
-int AdjacentCheck(int i, int j, int tempDecisionValue) {
-    continue;
+int AdjacentCheck(int i, int j, int tempDecisionValue, vector<vector<int> > & gameBoard) {
+    int x = 0;
+    int y = 0;
+    int checkValue = 0;
+
+    cout << i << " " << j << endl;
+    cout << "Check" << endl;
+
+    for (x = -1; x < 2; x++) {
+        for (y = -1; y < 2; y++) {
+            if (y != 0 && x != 0) {
+                try {
+                    checkValue = gameBoard.at(i + x).at(j + y); // Checks every adjacent square
+
+                    if (checkValue == 0) {
+                        tempDecisionValue += 1;
+                    }
+                    else if (checkValue == 1) {
+                        tempDecisionValue += 2;
+                    }
+                    else if (checkValue == 2) {
+                        tempDecisionValue += 2;
+                    }
+                }
+                catch (const out_of_range& e) {
+                    continue;
+                }
+            }
+        }
+    }
+
+    return tempDecisionValue;
 }
 
 bool CPUMove(vector<vector<int> > & gameBoard){
@@ -141,21 +171,26 @@ bool CPUMove(vector<vector<int> > & gameBoard){
                 
                 for (x = -1; x < 2; x++) {
                     for (y = -1; y < 2; y++) {
-                        try {
-                            checkValue = gameBoard.at(i + x).at(j + y); // Checks every adjacent square
+                        if (y != 0 && x != 0) {
+                            try {
+                                checkValue = gameBoard.at(i + x).at(j + y); // Checks every adjacent square
 
-                            if (checkValue == 0) {
-                                tempDecisionValue += 1;
+                                if (checkValue == 0) {
+                                    tempDecisionValue += 1;
+                                }
+                                else if (checkValue == 1) {
+                                    tempDecisionValue += 2;
+                                    cout << i + x << " " << j + y;
+                                    tempDecisionValue += AdjacentCheck(i + x, j + y, tempDecisionValue, gameBoard);
+                                }
+                                else if (checkValue == 2) {
+                                    tempDecisionValue += 2;
+                                    tempDecisionValue += AdjacentCheck(i + x, j + y, tempDecisionValue, gameBoard);
+                                }
                             }
-                            else if (checkValue == 1) {
-                                tempDecisionValue += 2;
+                            catch (const out_of_range& e) {
+                                    continue;
                             }
-                            else if (checkValue == 2) {
-                                tempDecisionValue += 2;
-                            }
-                        }
-                        catch (const out_of_range& e) {
-                                continue;
                         }
                     }
                 }
