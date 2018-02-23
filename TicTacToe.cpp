@@ -92,39 +92,44 @@ int CheckWin(vector< vector<int> > gameBoard) { // Checks for win conditions
     return win; // Returns win state
 }
 
-/* Below is all of the CPU process garbage */
-int AdjacentCheck(int i, int j, int tempDecisionValue, vector<vector<int> > & gameBoard) { // Checks for adjacent squares of the same type, modifying the CPU's decision value
+/* Below are all of the CPU decision-making functions */
+int AdjacentCheck(int adjacentIdentifier, int i, int j, vector<vector<int> > & gameBoard) { // Checks for adjacent squares of the same type, modifying the CPU's risk/reward value
 
     /* Declares/initializes variables for the for-loops and check values */
     int x = 0;
     int y = 0;
     int checkValue = 0;
 
-    /* For-loops to check adjacent squares */
-    for (x = -1; x < 2; x++) {
-        for (y = -1; y < 2; y++) {
-            if (y != 0 && x != 0) { // Prevents a square from checking itself
-                try {
-                    checkValue = gameBoard.at(i + x).at(j + y); // Checks every adjacent square
+    if (adjacentIdentifier == 1) {
+        try {
+            checkValue = gameBoard.at(i).at(j); // Checks every adjacent square to see if it has the same value as the previously checked square
 
-                    if (checkValue == 0) {
-                        tempDecisionValue += 1;
-                    }
-                    else if (checkValue == 1) {
-                        tempDecisionValue += 2;
-                    }
-                    else if (checkValue == 2) {
-                        tempDecisionValue += 2;
-                    }
-                }
-                catch (const out_of_range& e) { // Catches out of range errors
-                    continue;
-                }
+            if (checkValue == adjacentIdentifier) { // If the player will win if this space isn't taken, add 100 points to the risk value
+                return 100;
+            }
+
+            else { // Else, if there is minimal risk and no adjacent player-owned squares, add 10 points to the risk value
+                return 10;
             }
         }
+        catch (const out_of_range& e) { // Catches out of range errors
+        }
     }
+    else {
+        try {
+            checkValue = gameBoard.at(i).at(j); // Checks every adjacent square to see if it has the same value as the previously checked square
 
-    return tempDecisionValue; // Returns the decision value
+            if (checkValue == adjacentIdentifier) { // If the computer has the opportunity to win, adds 1000 points to the reward value
+                return 1000;
+            }
+
+            else {
+                return 10; // Else, if there is no continuous line of spaces, add 10 points to the reward value
+            }
+        }
+        catch (const out_of_range& e) { // Catches out of range errors
+        }
+    }
 }
 
 bool CPUMove(vector<vector<int> > & gameBoard){
@@ -133,14 +138,19 @@ bool CPUMove(vector<vector<int> > & gameBoard){
     int i = 0;
     int j = 0;
 
-    int decisionValue = 0;
-    int maxI = 0;
-    int maxJ = 0;
+    int highestRewardValue = 0;
+    int maxRewardI = 0;
+    int maxRewardJ = 0;
+
+    int highestRiskValue = 0;
+    int maxRiskI = 0;
+    int maxRiskJ = 0;
 
     int x = 0;
     int y = 0;
 
-    int tempDecisionValue = 0;
+    int rewardValue = 0;
+    int riskValue = 0;
     int positionValue = 0;
     int checkValue = 0;
 
@@ -150,8 +160,8 @@ bool CPUMove(vector<vector<int> > & gameBoard){
     for (i = 0; i < 3; i++) {
         for (j = 0; j < 3; j++) {
             if (gameBoard.at(i).at(j) == 0) {
-                maxI = i;
-                maxJ = j;
+                maxRewardI = i;
+                maxRewardJ = j;
                 tieCheck = false;
             }
         }
@@ -161,30 +171,25 @@ bool CPUMove(vector<vector<int> > & gameBoard){
         return tieCheck;
     }
 
-    /* Main decision loop */
+    /* Reward Analysis Section */
     for (i = 0; i < 3; i++) {
         for (j = 0; j < 3; j++) {
             positionValue = gameBoard[i][j]; // Checks every position to see if it is 0
-            tempDecisionValue = 0; // Sets the "decision" value to 0
+            rewardValue = 0; // Sets the reward value to 0
                 
             if (positionValue == 0) { // If the position is blank, continues
                 
                 for (x = -1; x < 2; x++) {
                     for (y = -1; y < 2; y++) {
-                        if (y != 0 && x != 0) {
+                        if (y != 0 || x != 0) {
                             try {
-                                checkValue = gameBoard.at(i + x).at(j + y); // Checks every adjacent square
+                                checkValue = gameBoard.at(i + x).at(j + y); // Checks the state of every adjacent square
 
-                                if (checkValue == 0) {
-                                    tempDecisionValue += 1;
+                                if (checkValue == 0) { // If the adjacent space is just blank, virtually ignore it by incrementing the value only a tiny amount
+                                    rewardValue += 1;
                                 }
-                                else if (checkValue == 1) {
-                                    tempDecisionValue += 2;
-                                    tempDecisionValue += AdjacentCheck(i + x, j + y, tempDecisionValue, gameBoard);
-                                }
-                                else if (checkValue == 2) {
-                                    tempDecisionValue += 2;
-                                    tempDecisionValue += AdjacentCheck(i + x, j + y, tempDecisionValue, gameBoard);
+                                else if (checkValue == 2) { // Else, if the adjacent square is a CPU-owned square...
+                                    rewardValue += AdjacentCheck(2, i + (x * 2), j + (y * 2), gameBoard); // Check if it is adjacent to any other CPU squares and add points to the reward valuebased on adjacent squares' state
                                 }
                             }
                             catch (const out_of_range& e) { // Catches out of range errors
@@ -195,19 +200,61 @@ bool CPUMove(vector<vector<int> > & gameBoard){
                 }
             }
 
-            if (tempDecisionValue > decisionValue) { // If the current square's decision value is larger than the previous largest squares, replaces the previous position with the current
-                decisionValue = tempDecisionValue;
-                maxI = i;
-                maxJ = j;
+            if (rewardValue > highestRewardValue) { // If the current square's reward value is larger than the previous largest squares, replaces the previous highest position with the current poisition
+                highestRewardValue = rewardValue;
+                maxRewardI = i;
+                maxRewardJ = j;
             }
         }
     }
 
-    gameBoard[maxI][maxJ] = 2; // Changes the square with the largest decision value
-    return tieCheck;
+    /* Risk Analysis Section */
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+            positionValue = gameBoard[i][j]; // Checks every position to see if it is 0
+            riskValue = 0; // Sets the risk value to 0
+                
+            if (positionValue == 0) { // If the position is blank, continues
+                
+                for (x = -1; x < 2; x++) {
+                    for (y = -1; y < 2; y++) {
+                        if (y != 0 || x != 0) {
+                            try {
+                                checkValue = gameBoard.at(i + x).at(j + y); // Checks the state of every adjacent square
+
+                                if (checkValue == 0) { // If the adjacent space is just blank, virtually ignore it by incrementing the value only a tiny amount
+                                    riskValue += 1;
+                                }
+                                else if (checkValue == 1) { // Else, if the adjacent square is a player-owned square...
+                                    riskValue += AdjacentCheck(1, i + (x * 2), j + (y * 2), gameBoard); // Check if it is adjacent to any other player squares and add points to the risk value based on adjacent squares' state
+                                }
+                            }
+                            catch (const out_of_range& e) { // Catches out of range errors
+                                    continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (riskValue > highestRiskValue) { // If the current square's risk value is larger than the previous largest square's, replaces the previous highest position with the current
+                highestRiskValue = riskValue;
+                maxRiskI = i;
+                maxRiskJ = j;
+            }
+        }
+    }
+
+    if (highestRewardValue > highestRiskValue) { // Compares the value of the squares with highest risk and reward value
+        gameBoard[maxRewardI][maxRewardJ] = 2; // If the reward is greater than the risk, take the move with the greatest reward
+    }
+    else {
+        gameBoard[maxRiskI][maxRiskJ] = 2; // Else, take the move to eliminate the greatest risk
+    }
+    return tieCheck; // Tell the main game whether the game is tied or not 
 }
 
-/* Below is the player decision garbage */
+/* Below are the player decision functions */
 bool UpdateScreen(vector<vector<int> > & gameBoard, int numPlayer) {
 
     /* Declares/initializes varables for for-loops, choices, etc. */
@@ -228,6 +275,7 @@ bool UpdateScreen(vector<vector<int> > & gameBoard, int numPlayer) {
     for (i = 0; i < 3; i++) { // Checks if each square is empty/available
         for (j = 0; j < 3; j++) {
             if (gameBoard[i][j] == 0) { // IF a square is available, increments the counter (used for diaplayying choices), changes the tie checker to false, and appends the i/j value vectors with its position
+                cout << counter;
                 counter++;
                 tieCheck = false;
 
